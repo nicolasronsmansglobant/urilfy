@@ -1,60 +1,38 @@
 $(function () {
   var $input = $('#input'),
       $hosts = $('#hosts'),
-      $paths = $('#paths'),
-      $tnames = $('#tnames'),
-      $viewoverrides = $('#viewoverrides'),
-      $mvts = $('#mvts'),
-      $output = $('#output');
+      $types = $('#types'),
+      $typesContainer = $('#types-container'),
+      $output = $('#output'),
+      $openAll = $('#btn-all').hide();
 
-  var onUpdate = function () {
+  var hash = window.location.search
+           ? window.location.search.replace('?', '')
+           : '',
+      typesList = [];
+
+  var generateUrls = function () {
     var hostsVal = $hosts.val(),
-        pathsVal = $paths.val(),
-        tnamesVal = $tnames.val(),
-        viewoverridesVal = $viewoverrides.val(),
-        mvtsVal = $mvts.val(),
         hosts = hostsVal.split('\n'),
-        paths = pathsVal.split('\n'),
-        tnames = tnamesVal.split('\n'),
-        viewoverrides = viewoverridesVal.split('\n'),
-        mvts = mvtsVal.split('\n'),
         output = '';
 
-        console.log($input.serialize(), btoa($input.serialize()), atob(btoa($input.serialize())));
-
     if (hostsVal) {
-
       var toCombinate = [{
-        type: 'hosts',
+        type: 'host',
         list: hosts
       }];
 
-      if (pathsVal) {
-        toCombinate.push({
-          type: 'paths',
-          list: paths
-        });
-      }
+      for (var i = 0, typesListLen = typesList.length; i < typesListLen; i++) {
+        var $type = typesList[i],
+            typeVal = $type.val(),
+            typeList = typeVal.split('\n');
 
-      if (tnamesVal) {
-        toCombinate.push({
-          type: 'tnames',
-          list: tnames
-        });
-      }
-
-      if (viewoverridesVal) {
-        toCombinate.push({
-          type: 'viewoverrides',
-          list: viewoverrides
-        });
-      }
-
-      if (mvtsVal) {
-        toCombinate.push({
-          type: 'mvts',
-          list: mvts
-        });
+        if (typeVal) {
+          toCombinate.push({
+            type: $type.get(0).id,
+            list: typeList
+          });
+        }
       }
 
       if (toCombinate.length > 1) {
@@ -67,78 +45,33 @@ $(function () {
         }
 
         output += '<hr>';
-        output += '<button id="btn-all" title="Open all">Open all</button>';
+        $openAll.show();
+      } else {
+        $openAll.hide();
       }
     }
 
+    updateHash();
     $output.html(output);
   },
   combinateAll = function (arrays) {
-    if (arrays.length) {
-     if (arrays.length > 4) {
-        return combinate(arrays[0], combinate(arrays[1], combinate(arrays[2], combinate(arrays[3], arrays[4]))));
-      } else if (arrays.length > 3) {
-        return combinate(arrays[0], combinate(arrays[1], combinate(arrays[2], arrays[3])));
-      } else if (arrays.length > 2) {
-        return combinate(arrays[0], combinate(arrays[1], arrays[2]));
-      } else if (arrays.length > 1) {
-        return combinate(arrays[0], arrays[1]);
-      }
-
-      return arrays[0];
-    }
+    return !arrays.length
+          ? []
+          : arrays.length === 1
+          ? arrays[0]
+          : combinate(arrays, 0);
   },
-  combinate = function (obj1, obj2) {
-    var array = [];
+  combinate = function (arrays) {
+    var array1 = arrays.splice(0, 1)[0],
+        array2 = arrays.length === 1 ? arrays[0] : combinate(arrays);
+        array = [];
 
-    for (var i = 0, obj1Len = obj1.list.length; i < obj1Len; i++) {
-      if (obj1.list[i]) {
-        for (var j = 0, obj2Len = obj2.list.length; j < obj2Len; j++) {
-          if (obj2.list[j]) {
-            var part1 = obj1.list[i],
-                part2 = obj2.list[j];
-
-            if (obj1.type === 'hosts' && part1.charAt(part1.length - 1) !== '/') {
-              part1 += '/';
-            }
-
-            if (obj1.type === 'paths') {
-              if (part1.charAt(0) === '/') {
-                part1 = part1.substring(1);
-              }
-              if (part1.charAt(part1.length - 1) !== '/') {
-                part1 += '/';
-              }
-            }
-            if (obj2.type === 'paths') {
-              if (part2.charAt(0) === '/') {
-                part2 = part2.substring(1);
-              }
-              if (part2.charAt(part2.length - 1) !== '/') {
-                part2 += '/';
-              }
-            }
-
-            if (obj1.type === 'tnames') {
-              part1 = '&tName=' + part1;
-            }
-            if (obj2.type === 'tnames') {
-              part2 = '&tName=' + part2;
-            }
-
-            if (obj1.type === 'viewoverrides') {
-              part1 = '&viewOverride=' + part1;
-            }
-            if (obj2.type === 'viewoverrides') {
-              part2 = '&viewOverride=' + part2;
-            }
-
-            if (obj1.type === 'mvts') {
-              part1 = '&mvt=' + part1;
-            }
-            if (obj2.type === 'mvts') {
-              part2 = '&mvt=' + part2;
-            }
+    for (var i = 0, array1Len = array1.list.length; i < array1Len; i++) {
+      if (array1.list[i]) {
+        for (var j = 0, array2Len = array2.list.length; j < array2Len; j++) {
+          if (array2.list[j]) {
+            var part1 = format(array1.list[i], array1.type),
+                part2 = format(array2.list[j], array2.type);
 
             array.push(part1 + part2);
           }
@@ -147,9 +80,78 @@ $(function () {
     }
 
     return {
-      type: 'mixed',
+      type: array1.type === 'path' ? 'pathAndParams' : null,
       list: array
     };
+  },
+  format = function (string, type) {
+    if (type === 'host') {
+      if (string.charAt(string.length - 1) !== '/') {
+        string += '/';
+      }
+    } else if (type === 'path') {
+      if (string.charAt(0) === '/') {
+        string = string.substring(1);
+      }
+      if (string.charAt(string.length - 1) !== '/') {
+        string += '/';
+      }
+    } else if (type && type != 'pathAndParams') {
+      string = '&' + type + '=' + string;
+    }
+
+    return string;
+  },
+  generateTypes = function (data) {
+    var typesVal = $types.val(),
+        types = typesVal.split('\n'),
+        html = '';
+
+    for (var i = 0, typesListLen = typesList.length; i < typesListLen; i++) {
+      var toKeep = false;
+
+      for (var j = 0, typesLen = types.length; j < typesLen; j++) {
+        if (typesList[i].get(0).id === types[j]) {
+          toKeep = true;
+        }
+      }
+
+      if (!toKeep) {
+        typesList[i]
+          .remove()
+          .off();
+      }
+    }
+
+    typesList = [];
+
+    for (var i = 0, typesLen = types.length; i < typesLen; i++) {
+      var type = types[i];
+
+      if (type) {
+        var $textarea = $('#' + type);
+
+        if (!$textarea.length) {
+          $textarea = $('<textarea id="' + type + '" name="' + type + '" placeholder="' + type + '"></textarea>');
+        } else {
+          $textarea.detach();
+        }
+
+        $textarea
+          .appendTo($typesContainer)
+          .on('keyup', generateUrls);
+
+        if (data && data[type]) {
+          $textarea.val(data[type]);
+        }
+
+        typesList.push($textarea);
+      }
+    }
+
+    if (!data) {
+      updateHash();
+    }
   },
   onClick = function () {
     $output.find('a').each(function () {
@@ -158,12 +160,44 @@ $(function () {
   },
   openWindow = function (href) {
     window.open(href, '_blank');
+  },
+  updateHash = function () {
+    var newHash = btoa(serializeForm());
+
+    if (hash != newHash) {
+      hash = newHash;
+      window.history.replaceState(false, 'Urlify', '?' + hash);
+    }
+  },
+  serializeForm = function () {
+    var form = {
+          hosts: $hosts.val(),
+          types: $types.val()
+        };
+
+    for (var i = 0, typesListLen = typesList.length; i < typesListLen; i++) {
+      var $type = typesList[i];
+
+      form[$type.get(0).id] = $type.val();
+    }
+
+    return JSON.stringify(form);
+  },
+  populateForm = function () {
+    var form = JSON.parse(atob(hash));
+
+    $hosts.val(form.hosts);
+    $types.val(form.types);
+
+    generateTypes(form);
+    generateUrls();
   };
 
-  $hosts.on('keyup', onUpdate);
-  $paths.on('keyup', onUpdate);
-  $tnames.on('keyup', onUpdate);
-  $viewoverrides.on('keyup', onUpdate);
-  $mvts.on('keyup', onUpdate);
-  $('body').on('click', '#btn-all', onClick);
+  if (hash) {
+    populateForm();
+  }
+
+  $hosts.on('keyup', generateUrls);
+  $types.on('keyup', generateTypes);
+  $openAll.on('click', onClick);
 });
