@@ -1,0 +1,4 @@
+default:
+    - 'connect:dev'
+start:
+    - 'connect:prod'

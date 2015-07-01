@@ -1,5 +1,6 @@
 $(function () {
-  var $input = $('#input'),
+  var $urls = $('#urls'),
+      $input = $('#input'),
       $hosts = $('#hosts'),
       $types = $('#types'),
       $typesContainer = $('#types-container'),
@@ -11,7 +12,53 @@ $(function () {
            : '',
       typesList = [];
 
-  var generateUrls = function () {
+  var parseUrls = function () {
+    var urlsVal = $urls.val(),
+        urls = urlsVal.split('\n'),
+        form = {
+          hosts: '',
+          types: ''
+        };
+
+    if (urlsVal) {
+      for (var i = 0, urlsLen = urls.length; i < urlsLen; i++) {
+        var url = urls[i];
+
+        if (url) {
+          var a = document.createElement('a');
+          a.href = url;
+
+          if (a.protocol && a.host) {
+            form.hosts += a.protocol + '//' + a.host + '\n';
+          }
+
+          if (a.pathname) {
+            form.types = 'path\n';
+            form.path = a.pathname + '\n';
+          }
+
+          if (a.search) {
+            var searches = a.search.replace('?', '').split('&');
+
+            for (var j = 0, searchesLen = searches.length; j < searchesLen; j++) {
+              var search = searches[j].split('=');
+
+              if (search[0]) {
+                form.types += search[0] + '\n';
+              }
+
+              if (search[1]) {
+                form[search[0]] = (form[search[0]] ? form[search[0]] : '') + search[1] + '\n';
+              }
+            }
+          }
+        }
+      }
+      populateForm(form);
+      //$urls.val('');
+    }
+  },
+  generateUrls = function () {
     var hostsVal = $hosts.val(),
         hosts = hostsVal.split('\n'),
         output = '';
@@ -92,9 +139,6 @@ $(function () {
     } else if (type === 'path') {
       if (string.charAt(0) === '/') {
         string = string.substring(1);
-      }
-      if (string.charAt(string.length - 1) !== '/') {
-        string += '/';
       }
     } else if (type && type != 'pathAndParams') {
       string = '&' + type + '=' + string;
@@ -183,8 +227,8 @@ $(function () {
 
     return JSON.stringify(form);
   },
-  populateForm = function () {
-    var form = JSON.parse(atob(hash));
+  populateForm = function (data) {
+    var form = data;
 
     $hosts.val(form.hosts);
     $types.val(form.types);
@@ -194,9 +238,10 @@ $(function () {
   };
 
   if (hash) {
-    populateForm();
+    populateForm(JSON.parse(atob(hash)));
   }
 
+  $urls.on('keyup', parseUrls)
   $hosts.on('keyup', generateUrls);
   $types.on('keyup', generateTypes);
   $openAll.on('click', onClick);
