@@ -1,7 +1,5 @@
 <!DOCTYPE html>
-<!--[if lt IE 9]><html class="lt-ie9"><![endif]-->
-<!--[if gt IE 8]><html><![endif]-->
-<!--[if !IE]><!--><html><!--<![endif]-->
+<html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -12,19 +10,48 @@
     <script src="node_modules/jquery/dist/jquery.js"></script>
     <script src="js/app.js"></script>
 
-    <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
   </head>
   <body>
-    <form id="input">
-      <div>
-        <textarea id="urls" name="urls" placeholder="Urls"></textarea>
+    <div class="container-fluid">
+      <h1>Urlify</h1>
+      <form id="input">
+        <div class="row">
+          <div class="col-xs-12">
+            <div class="form-group">
+              <label for="urls">Urls</label>
+              <textarea id="urls" name="urls" class="form-control" placeholder="Urls"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-xs-4">
+            <div class="form-group">
+              <label for="hosts">Hosts</label>
+              <textarea id="hosts" name="hosts" class="form-control" placeholder="Hosts"></textarea>
+            </div>
+          </div>
+          <div class="col-xs-4">
+            <div class="form-group">
+              <label for="paths">Paths</label>
+              <textarea id="paths" name="paths" class="form-control" placeholder="Paths"></textarea>
+            </div>
+          </div>
+          <div class="col-xs-4">
+            <div class="form-group">
+              <label for="params">Params</label>
+              <textarea id="params" name="params" class="form-control" placeholder="Params"></textarea>
+            </div>
+          </div>
+        </div>
+        <div id="params-container" class="row"></div>
+      </form>
+      <div id="output">
       </div>
-      <textarea id="hosts" name="hosts" placeholder="Hosts"></textarea>
-      <textarea id="types" name="types" placeholder="Types"></textarea>
-      <div id="types-container"></div>
-    </form>
-    <div id="output">
+      <div id="controls" class="clearfix">
+        <button id="btn-reset" class="btn btn-default" title="Clear">Reset</button>
+        <button id="btn-all" class="btn btn-default pull-right" title="Open all">Open all</button>
+      </div>
     </div>
-    <button id="btn-all" title="Open all">Open all</button>
   </body>
 </html>

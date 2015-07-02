@@ -3,7 +3,7 @@ module.exports = function (grunt, options) {
     dev: {
       options: {
         hostname: '*',
-        port: process.env.PORT || '6789',
+        port: process.env.PORT || '6788',
         base: '.',
         keepalive: true
       }

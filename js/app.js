@@ -2,22 +2,26 @@ $(function () {
   var $urls = $('#urls'),
       $input = $('#input'),
       $hosts = $('#hosts'),
-      $types = $('#types'),
-      $typesContainer = $('#types-container'),
+      $paths = $('#paths'),
+      $params = $('#params'),
+      $paramsContainer = $('#params-container'),
       $output = $('#output'),
-      $openAll = $('#btn-all').hide();
+      $controls = $('#controls').hide(),
+      $openAll = $('#btn-all'),
+      $reset = $('#btn-reset');
 
   var hash = window.location.search
            ? window.location.search.replace('?', '')
            : '',
-      typesList = [];
+      paramsList = [];
 
   var parseUrls = function () {
     var urlsVal = $urls.val(),
         urls = urlsVal.split('\n'),
         form = {
           hosts: '',
-          types: ''
+          paths: '',
+          params: ''
         };
 
     if (urlsVal) {
@@ -33,8 +37,7 @@ $(function () {
           }
 
           if (a.pathname) {
-            form.types = 'path\n';
-            form.path = a.pathname + '\n';
+            form.paths = a.pathname + '\n';
           }
 
           if (a.search) {
@@ -44,7 +47,7 @@ $(function () {
               var search = searches[j].split('=');
 
               if (search[0]) {
-                form.types += search[0] + '\n';
+                form.params += search[0] + '\n';
               }
 
               if (search[1]) {
@@ -55,7 +58,6 @@ $(function () {
         }
       }
       populateForm(form);
-      //$urls.val('');
     }
   },
   generateUrls = function () {
@@ -65,25 +67,36 @@ $(function () {
 
     if (hostsVal) {
       var toCombinate = [{
-        type: 'host',
-        list: hosts
-      }];
+            type: 'host',
+            list: hosts
+          }],
+          pathsVal = $paths.val(),
+          paths = pathsVal.split('\n');
 
-      for (var i = 0, typesListLen = typesList.length; i < typesListLen; i++) {
-        var $type = typesList[i],
-            typeVal = $type.val(),
-            typeList = typeVal.split('\n');
+      if (pathsVal) {
+        toCombinate.push({
+          type: 'path',
+          list: paths
+        });
+      }
 
-        if (typeVal) {
+      for (var i = 0, paramsListLen = paramsList.length; i < paramsListLen; i++) {
+        var $param = paramsList[i],
+            paramVal = $param.val(),
+            paramList = paramVal.split('\n');
+
+        if (paramVal) {
           toCombinate.push({
-            type: $type.get(0).id,
-            list: typeList
+            type: $param.get(0).id,
+            list: paramList
           });
         }
       }
 
       if (toCombinate.length > 1) {
         var links = combinateAll(toCombinate).list;
+
+        output += '<hr>';
 
         for (var i = 0, linksLen = links.length; i < linksLen; i++) {
           var link = links[i].replace('&', '?');
@@ -92,10 +105,12 @@ $(function () {
         }
 
         output += '<hr>';
-        $openAll.show();
+        $controls.show();
       } else {
-        $openAll.hide();
+        $controls.hide();
       }
+    } else {
+      $controls.hide();
     }
 
     updateHash();
@@ -146,50 +161,59 @@ $(function () {
 
     return string;
   },
-  generateTypes = function (data) {
-    var typesVal = $types.val(),
-        types = typesVal.split('\n'),
+  generateParams = function (data) {
+    var paramsVal = $params.val(),
+        params = paramsVal.split('\n'),
         html = '';
 
-    for (var i = 0, typesListLen = typesList.length; i < typesListLen; i++) {
+    for (var i = 0, paramsListLen = paramsList.length; i < paramsListLen; i++) {
       var toKeep = false;
 
-      for (var j = 0, typesLen = types.length; j < typesLen; j++) {
-        if (typesList[i].get(0).id === types[j]) {
+      for (var j = 0, paramsLen = params.length; j < paramsLen; j++) {
+        if (paramsList[i].get(0).id === params[j]) {
           toKeep = true;
         }
       }
 
       if (!toKeep) {
-        typesList[i]
-          .remove()
-          .off();
+        paramsList[i]
+          .off()
+          .closest('.param')
+          .remove();
       }
     }
 
-    typesList = [];
+    paramsList = [];
 
-    for (var i = 0, typesLen = types.length; i < typesLen; i++) {
-      var type = types[i];
+    for (var i = 0, paramsLen = params.length; i < paramsLen; i++) {
+      var param = params[i];
 
-      if (type) {
-        var $textarea = $('#' + type);
+      if (param) {
+        var $textareaContainer = $('#param-' + param);
 
-        if (!$textarea.length) {
-          $textarea = $('<textarea id="' + type + '" name="' + type + '" placeholder="' + type + '"></textarea>');
+        if (!$textareaContainer.length) {
+          var html = '<div id="param-' + param + '" class="param col-xs-6">\n' +
+                     '  <div class="form-group">\n' +
+                     '    <label for="' + param + '">' + param + '</label>\n' +
+                     '    <textarea id="' + param + '" name="' + param + '" class="form-control" placeholder="' + param + '"></textarea>\n' +
+                     '  </div>\n' +
+                     '</div>';
+
+          $textareaContainer = $(html);
         } else {
-          $textarea.detach();
+          $textareaContainer.detach();
         }
 
-        $textarea
-          .appendTo($typesContainer)
-          .on('keyup', generateUrls);
+        $textareaContainer.appendTo($paramsContainer);
 
-        if (data && data[type]) {
-          $textarea.val(data[type]);
+        var $textarea = $textareaContainer.find('textarea');
+        $textarea.on('keyup', generateUrls);
+
+        if (data && data[param]) {
+          $textarea.val(data[param]);
         }
 
-        typesList.push($textarea);
+        paramsList.push($textarea);
       }
     }
 
@@ -197,7 +221,18 @@ $(function () {
       updateHash();
     }
   },
-  onClick = function () {
+  resetForm = function () {
+    $urls.val('');
+    $hosts.val('');
+    $paths.val('');
+    $params.val('');
+    $controls.hide();
+
+    generateParams();
+    generateUrls();
+    updateHash();
+  },
+  openAllLinks = function () {
     $output.find('a').each(function () {
       openWindow($(this).attr('href'));
     });
@@ -206,9 +241,13 @@ $(function () {
     window.open(href, '_blank');
   },
   updateHash = function () {
-    var newHash = btoa(serializeForm());
+    var serializedForm = serializeForm(),
+        newHash = btoa(serializedForm);
 
-    if (hash != newHash) {
+    if (!serializedForm) {
+      hash = '';
+      window.history.replaceState(false, 'Urlify', '/');
+    } else if (hash != newHash) {
       hash = newHash;
       window.history.replaceState(false, 'Urlify', '?' + hash);
     }
@@ -216,24 +255,28 @@ $(function () {
   serializeForm = function () {
     var form = {
           hosts: $hosts.val(),
-          types: $types.val()
+          paths: $paths.val(),
+          params: $params.val()
         };
 
-    for (var i = 0, typesListLen = typesList.length; i < typesListLen; i++) {
-      var $type = typesList[i];
+    for (var i = 0, paramsListLen = paramsList.length; i < paramsListLen; i++) {
+      var $param = paramsList[i];
 
-      form[$type.get(0).id] = $type.val();
+      form[$param.get(0).id] = $param.val();
     }
 
-    return JSON.stringify(form);
+    return form.hosts && form.paths && form.params
+         ? JSON.stringify(form)
+         : null;
   },
   populateForm = function (data) {
     var form = data;
 
     $hosts.val(form.hosts);
-    $types.val(form.types);
+    $paths.val(form.paths);
+    $params.val(form.params);
 
-    generateTypes(form);
+    generateParams(form);
     generateUrls();
   };
 
@@ -243,6 +286,7 @@ $(function () {
 
   $urls.on('keyup', parseUrls)
   $hosts.on('keyup', generateUrls);
-  $types.on('keyup', generateTypes);
-  $openAll.on('click', onClick);
+  $params.on('keyup', generateParams);
+  $reset.on('click', resetForm);
+  $openAll.on('click', openAllLinks);
 });
