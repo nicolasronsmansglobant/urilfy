@@ -87,7 +87,7 @@ $(function () {
 
         if (paramVal) {
           toCombinate.push({
-            type: $param.get(0).id,
+            type: $param.attr('rel'),
             list: paramList
           });
         }
@@ -161,26 +161,38 @@ $(function () {
 
     return string;
   },
+  onParamChange = function () {
+    generateParams();
+  }
   generateParams = function (data) {
-    var paramsVal = $params.val(),
+    var paramsVal = $.trim($params.val()),
         params = paramsVal.split('\n'),
-        html = '';
+        $textareaContainers = $('.param'),
+        textareaContainersLen = $('.param').length,
+        html = '',
+        toRemove = textareaContainersLen - params.length;
 
-    for (var i = 0, paramsListLen = paramsList.length; i < paramsListLen; i++) {
-      var toKeep = false;
+    if (paramsVal) {
+      for (var i = 0, paramsLen = 0; i < params.length; i++) {
+        var param = params[i],
+            toOrder = -1;
 
-      for (var j = 0, paramsLen = params.length; j < paramsLen; j++) {
-        if (paramsList[i].get(0).id === params[j]) {
-          toKeep = true;
+        $textareaContainers.each(function (index) {
+          if (i != index && $(this).get(0).id === param) {
+            toOrder = index;
+            return;
+          }
+        });
+
+        if (toOrder > -1) {
+          $textareaContainers
+            .eq(toOrder)
+            .detach()
+            .insertBefore($textareaContainers.eq(i));
         }
       }
-
-      if (!toKeep) {
-        paramsList[i]
-          .off()
-          .closest('.param')
-          .remove();
-      }
+    } else {
+      $paramsContainer.empty();
     }
 
     paramsList = [];
@@ -189,22 +201,37 @@ $(function () {
       var param = params[i];
 
       if (param) {
-        var $textareaContainer = $('#param-' + param);
+        var $textareaContainer = $textareaContainers.eq(i);
 
         if (!$textareaContainer.length) {
-          var html = '<div id="param-' + param + '" class="param col-xs-6">\n' +
+          var html = '<div class="param col-xs-6">\n' +
                      '  <div class="form-group">\n' +
                      '    <label for="' + param + '">' + param + '</label>\n' +
-                     '    <textarea id="' + param + '" name="' + param + '" class="form-control" placeholder="' + param + '"></textarea>\n' +
+                     '    <textarea id="' + param + '" name="' + param + '" class="form-control" placeholder="' + param + '" rel="' + param + '"></textarea>\n' +
                      '  </div>\n' +
                      '</div>';
 
-          $textareaContainer = $(html);
+          $textareaContainer = $(html).appendTo($paramsContainer);
         } else {
-          $textareaContainer.detach();
-        }
+          var oldId = $textareaContainer.find('textarea').attr('id'),
+              oldVal = $textareaContainer.find('textarea').val();
 
-        $textareaContainer.appendTo($paramsContainer);
+          $textareaContainer
+            .attr('id', param)
+            .find('label')
+              .attr('for', param)
+              .text(param)
+              .end()
+            .find('textarea')
+              .attr({
+                id: param,
+                name: param,
+                placeholder: param,
+                rel: param
+              })
+              .val(oldId === param ? oldVal : '')
+              .end();
+        }
 
         var $textarea = $textareaContainer.find('textarea');
         $textarea.on('keyup', generateUrls);
@@ -217,15 +244,28 @@ $(function () {
       }
     }
 
+
+console.log(textareaContainersLen, params.length);
+    if (toRemove > 0) {
+      for (var i = 0; i < toRemove; i++) { console.log(params.length + i - 1);
+        $textareaContainers.eq(params.length + i - 1)
+          .off()
+          .remove();
+      }
+    }
+
     if (!data) {
       updateHash();
     }
+
+    generateUrls();
   },
   resetForm = function () {
     $urls.val('');
     $hosts.val('');
     $paths.val('');
     $params.val('');
+    $paramsContainer.empty();
     $controls.hide();
 
     generateParams();
@@ -270,13 +310,13 @@ $(function () {
          : null;
   },
   populateForm = function (data) {
-    var form = data;
+    data;
 
-    $hosts.val(form.hosts);
-    $paths.val(form.paths);
-    $params.val(form.params);
+    $hosts.val($.trim(data.hosts));
+    $paths.val($.trim(data.paths));
+    $params.val($.trim(data.params));
 
-    generateParams(form);
+    generateParams(data);
     generateUrls();
   };
 
@@ -286,7 +326,8 @@ $(function () {
 
   $urls.on('keyup', parseUrls)
   $hosts.on('keyup', generateUrls);
-  $params.on('keyup', generateParams);
+  $paths.on('keyup', generateUrls);
+  $params.on('keyup', onParamChange);
   $reset.on('click', resetForm);
   $openAll.on('click', openAllLinks);
 });
