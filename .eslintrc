@@ -6,10 +6,14 @@
   "rules": {
     "no-loop-func": 0,
     "no-redeclare": 0,
+    "no-unused-vars": 0,
     "no-use-before-define": 0,
     "quotes": [1, "single", "avoid-escape"]
   },
   "globals": {
+    "require": 1,
+    "requirejs": 1,
+    "define": 1,
     "$": 1
   }
 }

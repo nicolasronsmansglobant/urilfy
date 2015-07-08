@@ -1,6 +1,9 @@
 default:
-    - eslint
+    - js
     - 'connect:dev'
 start:
-    - eslint
+    - js
     - 'connect:prod'
+js:
+    - hogan
+    - eslint

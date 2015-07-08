@@ -1,5 +1,10 @@
-$(function () {
+define(function (require, exports, module) {
   'use strict';
+
+  // imports
+  var $ = require('jquery'),
+      hogan = require('hogan'),
+      templates = require('./templates');
 
   // vars
   var hash = window.location.search
@@ -70,7 +75,7 @@ $(function () {
     generate: function () {
       var hostsVal = $electors.hosts.val(),
           hosts = hostsVal.split('\n'),
-          output = '';
+          output = {};
 
       if (hostsVal) {
         var toCombinate = [{
@@ -101,17 +106,18 @@ $(function () {
         }
 
         if (toCombinate.length > 1) {
-          var links = Inputs.combinateAll(toCombinate).list;
-
-          output += '<hr>';
+          var links = Inputs.combinateAll(toCombinate).list,
+              linksFormated = [];
 
           for (var i = 0, linksLen = links.length; i < linksLen; i++) {
             var link = links[i].replace('&', '?');
 
-            output += '<a href="' + link + '" title="' + link + '" target="_blank">' + link + '</a><br>';
+            linksFormated.push(link);
           }
 
-          output += '<hr>';
+          output.links = {
+            list: linksFormated
+          };
         }
 
         $electors.controls.show();
@@ -120,7 +126,7 @@ $(function () {
       }
 
       Misc.updateHash();
-      $electors.output.html(output);
+      $electors.output.html(templates.link(output));
     }
   };
 
@@ -165,14 +171,8 @@ $(function () {
           var $textareaContainer = $textareaContainers.eq(i);
 
           if (!$textareaContainer.length) {
-            var html = '<div class="param col-xs-6">\n' +
-                       '  <div class="form-group">\n' +
-                       '    <label for="' + param + '">' + param + '</label>\n' +
-                       '    <textarea id="' + param + '" name="' + param + '" class="form-control" placeholder="' + param + '" rel="' + param + '"></textarea>\n' +
-                       '  </div>\n' +
-                       '</div>';
-
-            $textareaContainer = $(html).appendTo($electors.paramsContainer);
+            $textareaContainer = $(templates.param({ param: param }))
+                                  .appendTo($electors.paramsContainer);
           } else {
             var oldId = $textareaContainer.find('textarea').attr('id'),
                 oldVal = $textareaContainer.find('textarea').val();

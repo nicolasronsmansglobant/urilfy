@@ -1,5 +1,5 @@
 module.exports = function () {
   return {
-    all: ['js/**/*.js']
+    all: ['js/app.js']
   };
 };
